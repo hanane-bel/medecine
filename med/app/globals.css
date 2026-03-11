@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+@media print {
+  @page {
+    margin: 1.5cm;
+    /* Marges réduites pour plus de place */
+    size: A4 portrait;
+  }
+
+  ::placeholder {
+    color: transparent !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-family: "Inter", "Roboto", "Arial", sans-serif !important;
+  }
+
+  html,
+  body,
+  .min-h-screen {
+    height: auto !important;
+    min-height: auto !important;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Force les logos svg et png à s'afficher correctement et sans flou */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Cacher tout ce qui est inutile à l'impression */
+  button,
+  nav,
+  header:not(.print\:block),
+  .no-print {
+    display: none !important;
+  }
+
+  /* Supprimer les ombres et bordures arrondies pour un look 'document officiel' propre */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl {
+    border-radius: 0 !important;
+  }
+
+  /* Masquer les bordures inutiles et conserver celles nécessaires pour les formulaires structurés */
+  .border {
+    border-color: #000 !important;
+    /* Noir pour les bordures utiles */
+  }
+
+  /* Additional catch-all to prevent unwanted empty pages from containers holding hidden schemas */
+  .schema-section[style*="display: none"] {
+    display: none !important;
+  }
+}

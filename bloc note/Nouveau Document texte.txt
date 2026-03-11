@@ -1,0 +1,600 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import AutopsieForm from "./components/AutopsieForm";
+import LeveeDeCorpsForm from "./components/LeveeDeCorpsForm";
+
+// Types pour les unités
+type Unite = "thanatologie" | "dommage_corporel" | "imagerie_ml" | "medecine_p";
+
+interface UniteInfo {
+    id: Unite;
+    nom: string;
+    description: string;
+    icon: string;
+    color: string;
+}
+
+const UNITES: UniteInfo[] = [
+    {
+        id: "thanatologie",
+        nom: "Unité 1 : Thanatologie",
+        description: "Étude des signes de la mort et des cadavres",
+        icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+        color: "from-red-500 to-rose-600",
+    },
+    {
+        id: "dommage_corporel",
+        nom: "Unité 2 : Dommage Corporel & Expertise",
+        description: "Évaluation des préjudices corporels et expertises médicales",
+        icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01",
+        color: "from-amber-500 to-orange-600",
+    },
+    {
+        id: "imagerie_ml",
+        nom: "Unité 3 : Imagerie Médico-Légale",
+        description: "Analyse d'images médicales à des fins légales",
+        icon: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
+        color: "from-blue-500 to-indigo-600",
+    },
+    {
+        id: "medecine_p",
+        nom: "Unité 4 : Médecine Pénitentiaire",
+        description: "Soins médicaux en milieu carcéral",
+        icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
+        color: "from-emerald-500 to-teal-600",
+    },
+];
+
+// Sous-unités pour Thanatologie
+type SousUniteThanato = "corps_depots" | "corps_hopital" | "autopsie" | "levee_corps" | "entomologie";
+
+interface SousUniteInfo {
+    id: SousUniteThanato;
+    nom: string;
+    description: string;
+    icon: string;
+}
+
+const SOUS_UNITES_THANATO: SousUniteInfo[] = [
+    {
+        id: "corps_depots",
+        nom: "1 - Corps en dépôts",
+        description: "Gestion des corps en attente d'identification ou de réclamation",
+        icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+    },
+    {
+        id: "corps_hopital",
+        nom: "2 - Corps d'hôpital",
+        description: "Traitement des décès survenus en milieu hospitalier",
+        icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
+    },
+    {
+        id: "autopsie",
+        nom: "3 - Autopsie",
+        description: "Examen post-mortem pour déterminer la cause du décès",
+        icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+    },
+    {
+        id: "levee_corps",
+        nom: "4 - Levée de corps",
+        description: "Constatation et documentation sur le lieu du décès",
+        icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z",
+    },
+    {
+        id: "entomologie",
+        nom: "5 - Entomologie",
+        description: "Étude des insectes pour estimer le délai post-mortem",
+        icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+    },
+];
+
+// Mock patients data
+const MOCK_PATIENTS = [
+    { id: "1", numeroDossier: "DOS-2024-001", nom: "Benali", prenom: "Ahmed", dateNaissance: "1985-03-15" },
+    { id: "2", numeroDossier: "DOS-2024-002", nom: "Khadija", prenom: "Fatima", dateNaissance: "1990-07-22" },
+    { id: "3", numeroDossier: "DOS-2024-003", nom: "Mansouri", prenom: "Youssef", dateNaissance: "1978-11-08" },
+    { id: "4", numeroDossier: "DOS-2024-004", nom: "Belkacem", prenom: "Sara", dateNaissance: "1995-01-30" },
+];
+
+export default function MedecinDashboard() {
+    const router = useRouter();
+    const [selectedUnite, setSelectedUnite] = useState<Unite | null>(null);
+    const [selectedSousUnite, setSelectedSousUnite] = useState<SousUniteThanato | null>(null);
+    const [selectedPatient, setSelectedPatient] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [showResults, setShowResults] = useState<boolean>(false);
+
+    // Filtrer les patients selon la recherche (nom, prénom ou date de naissance)
+    const filteredPatients = MOCK_PATIENTS.filter((patient) => {
+        const query = searchQuery.toLowerCase();
+        const formattedDate = new Date(patient.dateNaissance).toLocaleDateString("fr-FR");
+        return (
+            patient.nom.toLowerCase().includes(query) ||
+            patient.prenom.toLowerCase().includes(query) ||
+            patient.dateNaissance.includes(query) ||
+            formattedDate.includes(query)
+        );
+    });
+
+    const handleSelectPatient = (patientId: string) => {
+        setSelectedPatient(patientId);
+        const patient = MOCK_PATIENTS.find(p => p.id === patientId);
+        if (patient) {
+            setSearchQuery(`${patient.nom} ${patient.prenom}`);
+        }
+        setShowResults(false);
+    };
+
+    const handleLogout = () => {
+        router.push("/");
+    };
+
+    const handleUniteSelect = (unite: Unite) => {
+        setSelectedUnite(unite);
+        setSelectedSousUnite(null);
+        setSelectedPatient("");
+        setSearchQuery("");
+    };
+
+    const handleSousUniteSelect = (sousUnite: SousUniteThanato) => {
+        setSelectedSousUnite(sousUnite);
+        setSelectedPatient("");
+        setSearchQuery("");
+    };
+
+    const handleBack = () => {
+        if (selectedSousUnite) {
+            // Retour à la sélection de sous-unité
+            setSelectedSousUnite(null);
+            setSelectedPatient("");
+            setSearchQuery("");
+        } else {
+            // Retour à la sélection d'unité
+            setSelectedUnite(null);
+            setSelectedPatient("");
+            setSearchQuery("");
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900">
+            {/* Header */}
+            <header className="bg-white/10 backdrop-blur-xl border-b border-white/10">
+                <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-white">Espace Médecin</h1>
+                            <p className="text-sm text-gray-400">
+                                {selectedUnite
+                                    ? UNITES.find(u => u.id === selectedUnite)?.nom
+                                    : "Sélection des unités médicales"}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        {selectedUnite && (
+                            <button
+                                onClick={handleBack}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-300 flex items-center space-x-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                <span>Retour</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={handleLogout}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-300 flex items-center space-x-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>Déconnexion</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-7xl mx-auto px-4 py-8">
+                {!selectedUnite ? (
+                    <>
+                        {/* Selection des unités */}
+                        <div className="text-center mb-10">
+                            <h2 className="text-3xl font-bold text-white mb-3">Choisissez une unité</h2>
+                            <p className="text-gray-400">Sélectionnez l&apos;unité dans laquelle vous souhaitez travailler</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {UNITES.map((unite) => (
+                                <button
+                                    key={unite.id}
+                                    onClick={() => handleUniteSelect(unite.id)}
+                                    className="group bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10 hover:bg-white/20 transition-all duration-300 text-left hover:scale-[1.02] hover:shadow-xl"
+                                >
+                                    <div className="flex items-start space-x-4">
+                                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${unite.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={unite.icon} />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">{unite.nom}</h3>
+                                            <p className="text-gray-400 text-sm">{unite.description}</p>
+                                        </div>
+                                        <svg className="w-6 h-6 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                ) : selectedUnite === "thanatologie" && !selectedSousUnite ? (
+                    <>
+                        {/* Sélection des sous-unités de Thanatologie */}
+                        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10 mb-8">
+                            <div className="flex items-center space-x-4 mb-6">
+                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${UNITES.find(u => u.id === selectedUnite)?.color} flex items-center justify-center`}>
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={UNITES.find(u => u.id === selectedUnite)?.icon} />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">{UNITES.find(u => u.id === selectedUnite)?.nom}</h2>
+                                    <p className="text-gray-400">Sélectionnez une sous-unité</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {SOUS_UNITES_THANATO.map((sousUnite) => (
+                                    <button
+                                        key={sousUnite.id}
+                                        onClick={() => handleSousUniteSelect(sousUnite.id)}
+                                        className="group bg-white/5 hover:bg-red-500/20 rounded-xl p-5 border border-white/10 hover:border-red-500/50 transition-all duration-300 text-left"
+                                    >
+                                        <div className="flex items-start space-x-3">
+                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sousUnite.icon} />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-base font-bold text-white mb-1 group-hover:text-red-300 transition-colors">{sousUnite.nom}</h3>
+                                                <p className="text-gray-400 text-xs">{sousUnite.description}</p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* Interface de l'unité/sous-unité sélectionnée */}
+                        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10 mb-8">
+                            <div className="flex items-center space-x-4 mb-6">
+                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${UNITES.find(u => u.id === selectedUnite)?.color} flex items-center justify-center`}>
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={UNITES.find(u => u.id === selectedUnite)?.icon} />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">
+                                        {UNITES.find(u => u.id === selectedUnite)?.nom}
+                                        {selectedSousUnite && (
+                                            <span className="text-red-300"> → {SOUS_UNITES_THANATO.find(s => s.id === selectedSousUnite)?.nom}</span>
+                                        )}
+                                    </h2>
+                                    <p className="text-gray-400">
+                                        {selectedSousUnite
+                                            ? SOUS_UNITES_THANATO.find(s => s.id === selectedSousUnite)?.description
+                                            : UNITES.find(u => u.id === selectedUnite)?.description
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Recherche du patient */}
+                            <div className="space-y-4 relative">
+                                <label className="block text-sm font-medium text-gray-300">
+                                    Rechercher un patient (nom, prénom ou date de naissance)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setShowResults(true);
+                                            if (e.target.value === "") {
+                                                setSelectedPatient("");
+                                            }
+                                        }}
+                                        onFocus={() => setShowResults(true)}
+                                        placeholder="Tapez le nom, prénom ou date de naissance..."
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    />
+                                    <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+
+                                {/* Résultats de la recherche */}
+                                {showResults && searchQuery && (
+                                    <div className="absolute z-10 w-full mt-2 bg-slate-800 border border-white/20 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                                        {filteredPatients.length > 0 ? (
+                                            filteredPatients.map((patient) => (
+                                                <button
+                                                    key={patient.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectPatient(patient.id)}
+                                                    className={`w-full px-4 py-3 text-left hover:bg-emerald-600/30 transition-colors flex items-center justify-between ${selectedPatient === patient.id ? 'bg-emerald-600/20' : ''}`}
+                                                >
+                                                    <div>
+                                                        <p className="text-white font-medium">{patient.nom} {patient.prenom}</p>
+                                                        <p className="text-gray-400 text-sm">
+                                                            {patient.numeroDossier} • Né(e) le {new Date(patient.dateNaissance).toLocaleDateString("fr-FR")}
+                                                        </p>
+                                                    </div>
+                                                    {selectedPatient === patient.id && (
+                                                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-3 text-gray-400 text-center">
+                                                Aucun patient trouvé
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Patient sélectionné */}
+                                {selectedPatient && (
+                                    <div className="mt-4 p-4 bg-emerald-600/20 border border-emerald-500/30 rounded-xl">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500/30 flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-medium">
+                                                        {MOCK_PATIENTS.find(p => p.id === selectedPatient)?.nom} {MOCK_PATIENTS.find(p => p.id === selectedPatient)?.prenom}
+                                                    </p>
+                                                    <p className="text-gray-400 text-sm">
+                                                        {MOCK_PATIENTS.find(p => p.id === selectedPatient)?.numeroDossier}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedPatient("");
+                                                    setSearchQuery("");
+                                                }}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Formulaire spécifique à l'unité */}
+                        {
+                            selectedPatient && (
+                                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10">
+                                    <h3 className="text-xl font-bold text-white mb-6">
+                                        Formulaire - {UNITES.find(u => u.id === selectedUnite)?.nom}
+                                    </h3>
+
+                                    {/* Unité 1: Thanatologie - Formulaires selon la sous-unité */}
+                                    {selectedUnite === "thanatologie" && (
+                                        <>
+                                            {/* Sous-unité: Autopsie */}
+                                            {selectedSousUnite === "autopsie" && (
+                                                <AutopsieForm
+                                                    patientId={selectedPatient}
+                                                    patientName={`${MOCK_PATIENTS.find(p => p.id === selectedPatient)?.nom} ${MOCK_PATIENTS.find(p => p.id === selectedPatient)?.prenom}`}
+                                                />
+                                            )}
+
+                                            {/* Sous-unité: Levée de corps */}
+                                            {selectedSousUnite === "levee_corps" && (
+                                                <LeveeDeCorpsForm
+                                                    patientId={selectedPatient}
+                                                    patientName={`${MOCK_PATIENTS.find(p => p.id === selectedPatient)?.nom} ${MOCK_PATIENTS.find(p => p.id === selectedPatient)?.prenom}`}
+                                                />
+                                            )}
+
+                                            {/* Autres sous-unités: Formulaire générique */}
+                                            {selectedSousUnite && selectedSousUnite !== "autopsie" && selectedSousUnite !== "levee_corps" && (
+                                                <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="space-y-2">
+                                                        <label className="block text-sm font-medium text-gray-300">Date du décès</label>
+                                                        <input type="datetime-local" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="block text-sm font-medium text-gray-300">Lieu du décès</label>
+                                                        <input type="text" placeholder="Lieu du décès" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="block text-sm font-medium text-gray-300">Cause du décès</label>
+                                                        <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                            <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                            <option value="naturelle" className="bg-slate-800">Mort naturelle</option>
+                                                            <option value="accidentelle" className="bg-slate-800">Mort accidentelle</option>
+                                                            <option value="suicide" className="bg-slate-800">Suicide</option>
+                                                            <option value="homicide" className="bg-slate-800">Homicide</option>
+                                                            <option value="indeterminee" className="bg-slate-800">Indéterminée</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="block text-sm font-medium text-gray-300">Autopsie réalisée</label>
+                                                        <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                            <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                            <option value="oui" className="bg-slate-800">Oui</option>
+                                                            <option value="non" className="bg-slate-800">Non</option>
+                                                            <option value="en_cours" className="bg-slate-800">En cours</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="md:col-span-2 space-y-2">
+                                                        <label className="block text-sm font-medium text-gray-300">Observations</label>
+                                                        <textarea rows={4} placeholder="Notes et observations..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <button type="submit" className="w-full py-4 px-6 bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-red-500/50 transition-all duration-300">
+                                                            Enregistrer le rapport
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Unité 2: Dommage Corporel */}
+                                    {selectedUnite === "dommage_corporel" && (
+                                        <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Date de l&apos;accident/incident</label>
+                                                <input type="date" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Type de dommage</label>
+                                                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                    <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                    <option value="accident_travail" className="bg-slate-800">Accident de travail</option>
+                                                    <option value="accident_route" className="bg-slate-800">Accident de la route</option>
+                                                    <option value="agression" className="bg-slate-800">Agression</option>
+                                                    <option value="autre" className="bg-slate-800">Autre</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">ITT (Jours)</label>
+                                                <input type="number" placeholder="Nombre de jours" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">IPP (%)</label>
+                                                <input type="number" placeholder="Pourcentage" min="0" max="100" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Description des lésions</label>
+                                                <textarea rows={4} placeholder="Détail des lésions constatées..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <button type="submit" className="w-full py-4 px-6 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-amber-500/50 transition-all duration-300">
+                                                    Enregistrer l&apos;expertise
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {/* Unité 3: Imagerie ML */}
+                                    {selectedUnite === "imagerie_ml" && (
+                                        <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Type d&apos;examen</label>
+                                                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                    <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                    <option value="radiographie" className="bg-slate-800">Radiographie</option>
+                                                    <option value="scanner" className="bg-slate-800">Scanner</option>
+                                                    <option value="irm" className="bg-slate-800">IRM</option>
+                                                    <option value="echographie" className="bg-slate-800">Échographie</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Date de l&apos;examen</label>
+                                                <input type="date" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Région anatomique</label>
+                                                <input type="text" placeholder="Ex: Crâne, Thorax, Abdomen..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Fichier image</label>
+                                                <input type="file" accept="image/*,.dcm" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:text-white" />
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Interprétation</label>
+                                                <textarea rows={4} placeholder="Résultats et interprétation de l'imagerie..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <button type="submit" className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-blue-500/50 transition-all duration-300">
+                                                    Enregistrer le rapport d&apos;imagerie
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {/* Unité 4: Médecine Pénitentiaire */}
+                                    {selectedUnite === "medecine_p" && (
+                                        <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Établissement pénitentiaire</label>
+                                                <input type="text" placeholder="Nom de l'établissement" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Date de consultation</label>
+                                                <input type="date" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Motif de consultation</label>
+                                                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                    <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                    <option value="entree" className="bg-slate-800">Visite d&apos;entrée</option>
+                                                    <option value="suivi" className="bg-slate-800">Suivi médical</option>
+                                                    <option value="urgence" className="bg-slate-800">Urgence</option>
+                                                    <option value="sortie" className="bg-slate-800">Visite de sortie</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">État général</label>
+                                                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                    <option value="" disabled className="bg-slate-800">-- Sélectionnez --</option>
+                                                    <option value="bon" className="bg-slate-800">Bon</option>
+                                                    <option value="moyen" className="bg-slate-800">Moyen</option>
+                                                    <option value="mauvais" className="bg-slate-800">Mauvais</option>
+                                                    <option value="critique" className="bg-slate-800">Critique</option>
+                                                </select>
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Observations médicales</label>
+                                                <textarea rows={4} placeholder="Notes et observations..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="block text-sm font-medium text-gray-300">Prescriptions</label>
+                                                <textarea rows={3} placeholder="Médicaments et traitements prescrits..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <button type="submit" className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-emerald-500/50 transition-all duration-300">
+                                                    Enregistrer la consultation
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+                                </div>
+                            )
+                        }
+                    </>
+                )
+                }
+            </main >
+        </div >
+    );
+}
