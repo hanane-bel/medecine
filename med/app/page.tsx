@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login, changePassword, type UserProfile } from "./lib/api";
+import { login, changePassword, setSessionCookie, type UserProfile } from "./lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,6 +72,7 @@ export default function LoginPage() {
 
       if (tempUser) {
         localStorage.setItem("user", JSON.stringify({ ...tempUser, force_password_change: false }));
+        setSessionCookie(tempUser.role);
       }
 
       setTimeout(() => {

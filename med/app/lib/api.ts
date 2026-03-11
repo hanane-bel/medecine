@@ -7,6 +7,12 @@ export { CHEF_SERVICE_INFO };
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
+export function setSessionCookie(role: string) {
+    if (typeof document !== "undefined") {
+        document.cookie = `session=${JSON.stringify({ role })}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function getToken(): string | null {
@@ -20,9 +26,12 @@ function setTokens(access: string, refresh: string) {
 }
 
 function clearTokens() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -111,7 +120,12 @@ export async function login(username: string, password: string): Promise<LoginRe
 
     const data: LoginResponse = await res.json();
     setTokens(data.access, data.refresh);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    if (typeof window !== "undefined") {
+        localStorage.setItem("user", JSON.stringify(data.user));
+    }
+    if (!data.user.force_password_change) {
+        setSessionCookie(data.user.role);
+    }
     return data;
 }
 

@@ -12,7 +12,7 @@ import { useFormDataStore } from "../store/formDataStore";
 import {
     fetchPatients, createPatient, fetchDailyStats, fetchActivity,
     requestModification,
-    logout as apiLogout, getCurrentUser, CHEF_SERVICE_INFO,
+    logout as apiLogout, getCurrentUser,
     type PatientAPI, type DailyStats, type ActivityLogAPI, type UserProfile,
 } from "../lib/api";
 
@@ -306,21 +306,22 @@ export default function MedecinDashboard() {
 
                         <div className="h-8 w-px bg-white/10 hidden md:block mx-2"></div>
 
-                        {/* Profile Section (Chef de Service) */}
-                        <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 bg-white/5 rounded-2xl border border-white/10">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-amber-500/20">
-                                {CHEF_SERVICE_INFO.prenom[0]}{CHEF_SERVICE_INFO.nom[0]}
+                        {/* Profile Section */}
+                        {currentUser && (
+                            <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 bg-white/5 rounded-2xl border border-white/10">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-emerald-500/20 uppercase">
+                                    {currentUser.first_name?.[0] || ""}{currentUser.last_name?.[0] || ""}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white text-xs font-bold leading-tight capitalize">{currentUser.first_name} {currentUser.last_name}</span>
+                                    <span className="text-emerald-400 text-[10px] leading-tight font-medium">{currentUser.role_display}</span>
+                                </div>
+                                <div className="h-4 w-px bg-white/10 mx-1"></div>
+                                <div className="flex flex-col items-end justify-center">
+                                    <span className="text-gray-400 text-[10px] leading-tight">{currentUser.email}</span>
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-white text-xs font-bold leading-tight">{CHEF_SERVICE_INFO.prenom} {CHEF_SERVICE_INFO.nom}</span>
-                                <span className="text-amber-400 text-[10px] leading-tight font-medium">{CHEF_SERVICE_INFO.titre}</span>
-                            </div>
-                            <div className="h-4 w-px bg-white/10 mx-1"></div>
-                            <div className="flex flex-col items-end">
-                                <span className="text-gray-400 text-[10px] leading-tight">{CHEF_SERVICE_INFO.email}</span>
-                                <span className="text-gray-400 text-[10px] leading-tight">{CHEF_SERVICE_INFO.numero}</span>
-                            </div>
-                        </div>
+                        )}
 
                         <button
                             onClick={handleLogout}
@@ -813,7 +814,8 @@ export default function MedecinDashboard() {
                                                         onClick={async () => {
                                                             if (confirm(`Demander la modification du dossier de ${selectedPatientData?.nom} ${selectedPatientData?.prenom} ?\n\nLe chef de service devra approuver votre demande.`)) {
                                                                 try {
-                                                                    await requestModification(parseInt(selectedPatient, 10));
+                                                                    if (!selectedPatientData?.id) throw new Error("ID du patient manquant");
+                                                                    await requestModification(selectedPatientData.id);
                                                                     await loadData();
                                                                     alert("Demande de modification envoyée au chef de service.");
                                                                 } catch (err) {

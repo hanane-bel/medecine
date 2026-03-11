@@ -569,11 +569,13 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                             onClick={async () => {
                                 if (confirm("Demander la modification de ce dossier ?\n\nLe chef de service devra approuver votre demande.")) {
                                     try {
-                                        await requestModification(parseInt(patientId, 10));
+                                        const idToSubmit = parseInt(patientId, 10);
+                                        if (isNaN(idToSubmit)) throw new Error("ID du patient invalide: " + patientId);
+                                        await requestModification(idToSubmit);
                                         window.location.reload();
                                     } catch (err) {
                                         console.error(err);
-                                        alert("Erreur lors de l'envoi de la demande.");
+                                        alert("Erreur lors de l'envoi de la demande. Vérifiez la console.");
                                     }
                                 }
                             }}

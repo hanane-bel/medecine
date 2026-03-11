@@ -136,6 +136,26 @@ export default function SecretaireDashboard() {
                                 <span>Dashboard Admin</span>
                             </button>
                         )}
+                        
+                        <div className="h-8 w-px bg-white/10 hidden md:block mx-2"></div>
+
+                        {/* Profile Section */}
+                        {currentUser && (
+                            <div className="hidden lg:flex items-center space-x-3 px-3 py-1.5 bg-white/5 rounded-2xl border border-white/10">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-emerald-500/20 uppercase">
+                                    {currentUser.first_name?.[0] || ""}{currentUser.last_name?.[0] || ""}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white text-xs font-bold leading-tight capitalize">{currentUser.first_name} {currentUser.last_name}</span>
+                                    <span className="text-blue-400 text-[10px] leading-tight font-medium">{currentUser.role_display}</span>
+                                </div>
+                                <div className="h-4 w-px bg-white/10 mx-1"></div>
+                                <div className="flex flex-col items-end justify-center">
+                                    <span className="text-gray-400 text-[10px] leading-tight">{currentUser.email}</span>
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             onClick={handleLogout}
                             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-300 flex items-center space-x-2"

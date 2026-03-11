@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { CHEF_SERVICE_INFO } from "../../lib/api";
 
 interface PrintHeaderProps {
     title: string;
