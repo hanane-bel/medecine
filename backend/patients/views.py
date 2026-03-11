@@ -45,7 +45,7 @@ class CanEditPatientRecord(permissions.BasePermission):
             return True
             
         if user.role.lower() == 'medecin':
-            return obj.created_by == user or obj.medecin_traitant == user
+            return obj.medecin_traitant is None or obj.created_by == user or obj.medecin_traitant == user
             
         return False
 
@@ -110,6 +110,10 @@ class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         patient = serializer.save()
+        if not patient.medecin_traitant and self.request.user.role.lower() == 'medecin':
+            patient.medecin_traitant = self.request.user
+            patient.save(update_fields=['medecin_traitant'])
+        
         ActivityLog.objects.create(
             action='update',
             patient=patient,
