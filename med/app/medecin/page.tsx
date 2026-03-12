@@ -190,13 +190,24 @@ export default function MedecinDashboard() {
     // Filtrer les patients selon la recherche (nom, prénom ou date de naissance)
     const filteredPatients = patients.filter((patient) => {
         const query = searchQuery.toLowerCase();
-        const formattedDate = new Date(patient.date_naissance).toLocaleDateString("fr-FR");
-        return (
-            patient.nom.toLowerCase().includes(query) ||
-            patient.prenom.toLowerCase().includes(query) ||
-            patient.date_naissance.includes(query) ||
-            formattedDate.includes(query)
-        );
+        
+        const nomMatch = patient.nom?.toLowerCase()?.includes(query) || false;
+        const prenomMatch = patient.prenom?.toLowerCase()?.includes(query) || false;
+        
+        let dateMatch = false;
+        let formattedDateMatch = false;
+        
+        if (patient.date_naissance) {
+            dateMatch = patient.date_naissance.includes(query);
+            try {
+                const formattedDate = new Date(patient.date_naissance).toLocaleDateString("fr-FR");
+                formattedDateMatch = formattedDate.includes(query);
+            } catch (e) {
+                // Ignore invalid date parsing errors
+            }
+        }
+
+        return nomMatch || prenomMatch || dateMatch || formattedDateMatch;
     });
 
     const handleSelectPatient = (patientId: string) => {

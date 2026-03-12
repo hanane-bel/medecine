@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import PrintSelectionModal from "./PrintSelectionModal";
 import PersistentForm from "./PersistentForm";
 import PrintHeader from "./PrintHeader";
+import FicheExamenPrint, { ExamPrintData } from "./FicheExamenPrint";
 import { getCurrentUser, updatePatient, requestModification } from "../../lib/api";
+import FormLockBanner from "./FormLockBanner";
 
 import { Patient } from "../../store/patientStore";
 
@@ -53,6 +55,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
     const [isMineur, setIsMineur] = useState(false);
     const [isHospitalise, setIsHospitalise] = useState(false);
     const formRef = useRef<HTMLDivElement>(null);
+    const [examPrintData, setExamPrintData] = useState<ExamPrintData | null>(null);
 
     // Canvas refs and state
     const schemaCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -155,48 +158,155 @@ export default function ConsultationForm({ patientId, patientName, patientData }
         });
     };
 
+    // Collect all form values from DOM for the print view
+    const collectFormValues = (): ExamPrintData => {
+        const f = formRef.current;
+
+        // Read all inputs by their position in the form
+        const allInputs = f?.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]') || [];
+        const allTextareas = f?.querySelectorAll('textarea') || [];
+        const allSelects = f?.querySelectorAll('select') || [];
+
+        const textInputs = Array.from(allInputs) as HTMLInputElement[];
+        const textareaInputs = Array.from(allTextareas) as HTMLTextAreaElement[];
+        const selectInputs = Array.from(allSelects) as HTMLSelectElement[];
+
+        // CBI radio buttons — determine which sub-type is selected
+        const cbiRadios = f?.querySelectorAll('input[name="cbi_type"]') || [];
+        let isADC = false, isAVP = false, isAutresNature = false;
+        cbiRadios.forEach((radio, idx) => {
+            if ((radio as HTMLInputElement).checked) {
+                if (idx === 0) isADC = true;
+                if (idx === 1) isAVP = true;
+                if (idx === 2) isAutresNature = true;
+            }
+        });
+
+        // Checkboxes: CBI, CBV, then 3 objet checkboxes (Contondant, Tranchant, Autres)
+        const allCheckboxes = Array.from(f?.querySelectorAll('input[type="checkbox"]') || []) as HTMLInputElement[];
+        const cbiCheckbox = allCheckboxes[0];
+        const cbvCheckbox = allCheckboxes[1];
+        const contondantCheckbox = allCheckboxes[2];
+        const tranchantCheckbox = allCheckboxes[3];
+        const autresObjetCheckbox = allCheckboxes[4];
+
+        // Payment radios
+        const paymentRadios = f?.querySelectorAll('input[name="paiement"]') || [];
+        const isPayant = (paymentRadios[0] as HTMLInputElement)?.checked || false;
+        const isGratuit = (paymentRadios[1] as HTMLInputElement)?.checked || false;
+
+        // Split date/lieu de naissance from the combined field
+        const dateNaissanceRaw = textInputs[3]?.value || "";
+        let dateNaissance = patientData?.date_naissance || "";
+        let lieuNaissance = patientData?.lieu_naissance || "";
+        if (dateNaissanceRaw.includes("à ")) {
+            const parts = dateNaissanceRaw.split("à ");
+            dateNaissance = parts[0].trim();
+            lieuNaissance = parts[1]?.trim() || "";
+        } else if (dateNaissanceRaw) {
+            dateNaissance = dateNaissanceRaw;
+        }
+
+        return {
+            numero: textInputs[0]?.value || patientData?.numero_dossier || "",
+            dateExamen: textInputs[1]?.value || "",
+            nomPrenom: textInputs[2]?.value || patientName,
+            dateNaissance,
+            lieuNaissance,
+            etatCivil: selectInputs[0]?.options[selectInputs[0].selectedIndex]?.text || "",
+            profession: textInputs[4]?.value || "",
+            adresse: textInputs[5]?.value || "",
+            cin: textInputs[6]?.value || "",
+            tuteur: textInputs[7]?.value || "",
+            autoritesRequerantes: textInputs[8]?.value || "",
+            enDate: "",
+            dateFaits: textInputs[9]?.value || "",
+            isCBI: cbiCheckbox?.checked || false,
+            isCBV: cbvCheckbox?.checked || false,
+            isADC,
+            isAVP,
+            isAutresNature,
+            isContondant: contondantCheckbox?.checked || false,
+            isTranchant: tranchantCheckbox?.checked || false,
+            isAutresObjet: autresObjetCheckbox?.checked || false,
+            auteur: (f?.querySelector('input[name="auteur_agression"]') as HTMLInputElement)?.value || "",
+            familiaux: textareaInputs[0]?.value || "",
+            personnels: textareaInputs[1]?.value || "",
+            examenMedical: textareaInputs[2]?.value || "",
+            examensComplementaires: textareaInputs[3]?.value || "",
+            conclusion: textareaInputs[4]?.value || "",
+            ittJours: (f?.querySelector('input[name="itt_jours"]') as HTMLInputElement)?.value || "",
+            payant: isPayant ? "✓" : "",
+            gratuit: isGratuit ? "✓" : "",
+        };
+    };
+
     // Imprimer la fiche d'examen
     const handlePrintExam = async () => {
+        // IMPORTANT: set print mode FIRST to remove PrintHeader from DOM
+        // (PrintHeader has a text input that shifts all field indices)
         setShowAllForPrint(true);
         setIsPrintingReport(false);
         setIsPrintingExam(true);
         await new Promise(r => setTimeout(r, 200));
-        adjustTextareasForPrint();
-        await new Promise(r => setTimeout(r, 100));
+        // Now collect values with clean DOM (no PrintHeader input)
+        const data = collectFormValues();
+        setExamPrintData(data);
+        await new Promise(r => setTimeout(r, 200));
         window.print();
         setTimeout(() => {
-            resetTextareas();
             setShowAllForPrint(false);
             setIsPrintingExam(false);
+            setExamPrintData(null);
         }, 500);
     };
 
     // Télécharger Fiche Examen PDF
     const handleDownloadExamPDF = async () => {
         if (!formRef.current) return;
+        // IMPORTANT: set print mode FIRST to remove PrintHeader from DOM
         setShowAllForPrint(true);
         setIsPrintingReport(false);
         setIsPrintingExam(true);
         await new Promise(r => setTimeout(r, 200));
-        adjustTextareasForPrint();
-        await new Promise(r => setTimeout(r, 100));
+        // Now collect values with clean DOM
+        const data = collectFormValues();
+        setExamPrintData(data);
+        await new Promise(r => setTimeout(r, 200));
 
         formRef.current.classList.add("pdf-mode");
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-            margin: 10,
-            filename: `Fiche_Consultation_${patientName.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const }
-        };
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        await html2pdf().from(formRef.current).set(opt).save();
+            const canvas = await html2canvas(formRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
 
-        formRef.current.classList.remove("pdf-mode");
-        resetTextareas();
-        setShowAllForPrint(false);
-        setIsPrintingExam(false);
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Fiche_Consultation_${patientName.replace(/\s+/g, '_')}.pdf`);
+
+        } catch (error: any) {
+            console.error("PDF Generation Error (Exam):", error);
+            alert("Erreur lors de la génération du PDF: " + (error?.message || error));
+        } finally {
+            formRef.current.classList.remove("pdf-mode");
+            setShowAllForPrint(false);
+            setIsPrintingExam(false);
+            setExamPrintData(null);
+        }
     };
 
     // Imprimer le rapport médical avec sections sélectionnées
@@ -229,23 +339,40 @@ export default function ConsultationForm({ patientId, patientName, patientData }
         await new Promise(r => setTimeout(r, 100));
 
         formRef.current.classList.add("pdf-mode");
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-            margin: 10,
-            filename: `Certificat_Consultation_${patientName.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const }
-        };
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        await html2pdf().from(formRef.current).set(opt).save();
+            const canvas = await html2canvas(formRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
 
-        formRef.current.classList.remove("pdf-mode");
-        showAllFields();
-        resetTextareas();
-        setShowAllForPrint(false);
-        setIsPrintingReport(false);
-        setReportSections([]);
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Certificat_Consultation_${patientName.replace(/\s+/g, '_')}.pdf`);
+
+        } catch (error: any) {
+            console.error("PDF Generation Error (Report):", error);
+            alert("Erreur lors de la génération du PDF: " + (error?.message || error));
+        } finally {
+            formRef.current.classList.remove("pdf-mode");
+            showAllFields();
+            resetTextareas();
+            setShowAllForPrint(false);
+            setIsPrintingReport(false);
+            setReportSections([]);
+        }
     };
 
     // Hide empty fields before printing
@@ -297,6 +424,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
         const reader = new FileReader();
         reader.onload = (event) => {
             const img = new Image();
+            img.crossOrigin = "Anonymous";
             img.onload = () => {
                 const canvas = schemaCanvasRef.current;
                 if (!canvas) return;
@@ -321,6 +449,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
                 setHasUploadedImage(true);
+                setSchemaHasContent(true);
             };
             img.src = event.target?.result as string;
         };
@@ -404,191 +533,14 @@ export default function ConsultationForm({ patientId, patientName, patientData }
 
     return (
         <PersistentForm patientId={patientId} formType="consultation" initialData={patientData?.rapport_medical || ""} className="space-y-6 print:bg-white print:text-black">
-            {/* Styles d'impression */}
-            <style jsx global>{`
-                @media print {
-                    @page {
-                        size: A4;
-                        margin: 15mm;
-                    }
-                    body {
-                        background: white !important;
-                        font-family: Arial, "Inter", sans-serif !important;
-                        height: auto !important;
-                    }
-                    .no-print {
-                        display: none !important;
-                    }
-                    .print-field-empty { display: none !important; }
-                    .print-section {
-                        margin-bottom: 5px;
-                        border: none;
-                        overflow: visible !important;
-                    }
-                    .print-container {
-                        overflow: visible !important;
-                        height: auto !important;
-                    }
-                    input, textarea, select {
-                        background: transparent !important;
-                        color: black !important;
-                        border: none !important;
-                        border-radius: 0;
-                        padding: 0 !important;
-                        font-size: 11pt !important;
-                        overflow: visible !important;
-                        display: inline !important;
-                        width: auto !important;
-                        min-width: 50px;
-                        margin-left: 5px !important;
-                    }
-                    label {
-                        color: black !important;
-                        font-weight: bold !important;
-                        display: inline !important;
-                        margin-right: 5px !important;
-                        margin-bottom: 0 !important;
-                    }
-                    .bg-white\\/5 { background: transparent !important; border: none !important; padding: 0 !important; }
-                    .border-white\\/10 { border: none !important; }
-                    .grid { display: block !important; margin-bottom: 5px !important; }
-                    .grid > div { display: inline-block !important; margin-right: 20px !important; margin-bottom: 5px !important; }
-                    .flex-col { flex-direction: row !important; align-items: baseline !important; }
-                    h3, h4 { margin-top: 10px !important; margin-bottom: 5px !important; padding: 0 !important; }
-                    .space-y-6 > * + * { margin-top: 5px !important; }
-                    .space-y-4 > * + * { margin-top: 5px !important; }
-                    h3 span.w-8.h-8 { display: none !important; }
-                    .footer-print {
-                        width: 100%;
-                        text-align: center;
-                        font-size: 8pt;
-                        color: #666;
-                        border-top: 1px solid #ccc;
-                        padding-top: 3px;
-                        margin-top: 10px;
-                    }
-                }
-                @media screen {
-                    .print-container input, .print-container textarea {
-                        background: transparent;
-                        color: white;
-                        border-bottom: 1px dashed rgba(255,255,255,0.3);
-                        outline: none;
-                    }
-                    .print-container .titre-gris {
-                        background-color: rgba(255, 255, 255, 0.1) !important;
-                        color: white !important;
-                    }
-                    fieldset input[type="text"],
-                    fieldset input[type="date"],
-                    fieldset input[type="time"],
-                    fieldset input[type="number"],
-                    fieldset textarea,
-                    fieldset select {
-                        background: rgba(255,255,255,0.1) !important;
-                        border: 1px solid rgba(255,255,255,0.2) !important;
-                        border-radius: 0.5rem;
-                        color: white !important;
-                        padding: 0.75rem 1rem !important;
-                        font-size: 1rem !important;
-                        line-height: 1.5 !important;
-                        width: 100%;
-                        outline: none;
-                    }
-                    fieldset input[type="text"]:focus,
-                    fieldset input[type="date"]:focus,
-                    fieldset input[type="time"]:focus,
-                    fieldset input[type="number"]:focus,
-                    fieldset textarea:focus,
-                    fieldset select:focus {
-                        border-color: rgba(96,165,250,0.6) !important;
-                        box-shadow: 0 0 0 2px rgba(59,130,246,0.3) !important;
-                    }
-                    fieldset input[type="file"],
-                    fieldset input[type="color"],
-                    fieldset input[type="range"],
-                    fieldset input[type="radio"],
-                    fieldset input[type="checkbox"] {
-                        background: transparent !important;
-                        border: none !important;
-                        padding: 0 !important;
-                        width: auto;
-                    }
-                }
-                .pdf-mode {
-                    background-color: white !important;
-                    color: black !important;
-                }
-                .pdf-mode input, .pdf-mode textarea, .pdf-mode label, .pdf-mode h1, .pdf-mode h2, .pdf-mode h3, .pdf-mode p, .pdf-mode span, .pdf-mode div {
-                    color: black !important;
-                }
-                .pdf-mode input, .pdf-mode textarea {
-                    border-bottom: 1px dashed black !important;
-                }
-                .pdf-mode .titre-gris {
-                    background-color: #d1d5db !important;
-                }
-                .pdf-mode .no-print {
-                    display: none !important;
-                }
-            `}</style>
-
-            {/* Permissions & Mode Édition */}
-            {canEdit && !isEditing && (
-                <div className={`${patientData?.status === 'demande_modification' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-purple-500/10 border-purple-500/30'} border rounded-xl p-4 mb-6 flex items-center justify-between no-print`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${patientData?.status === 'demande_modification' ? 'bg-amber-500/20 text-amber-500' : 'bg-purple-500/20 text-purple-500'}`}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                        </div>
-                        <div>
-                            {patientData?.status === 'demande_modification' ? (
-                                <>
-                                    <h3 className="text-amber-400 font-bold">Demande de modification en cours</h3>
-                                    <p className="text-amber-400/80 text-sm">Votre demande est en attente d&apos;approbation par le chef de service.</p>
-                                </>
-                            ) : (
-                                <>
-                                    <h3 className="text-purple-400 font-bold">Dossier Verrouillé</h3>
-                                    <p className="text-purple-400/80 text-sm">Le formulaire est verrouillé. Vous pouvez demander une modification au chef de service.</p>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                    {patientData?.status === 'demande_modification' ? (
-                        <span className="px-4 py-2 bg-amber-500/20 text-amber-300 rounded-lg text-sm font-medium flex items-center gap-2 border border-amber-500/30 animate-pulse">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            En attente d&apos;approbation
-                        </span>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                if (confirm("Demander la modification de ce dossier ?\n\nLe chef de service devra approuver votre demande.")) {
-                                    try {
-                                        const idToSubmit = parseInt(patientId, 10);
-                                        if (isNaN(idToSubmit)) throw new Error("ID du patient invalide: " + patientId);
-                                        await requestModification(idToSubmit);
-                                        window.location.reload();
-                                    } catch (err) {
-                                        console.error(err);
-                                        alert("Erreur lors de l'envoi de la demande. Vérifiez la console.");
-                                    }
-                                }
-                            }}
-                            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Demander une modification
-                        </button>
-                    )}
-                </div>
-            )}
+            <FormLockBanner
+                patientId={patientId}
+                patientStatus={patientData?.status}
+                canEdit={canEdit}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+                label="formulaire"
+            />
 
             {/* Onglets de navigation */}
             <div className="flex flex-wrap gap-2 pb-4 border-b border-white/10 no-print">
@@ -651,9 +603,18 @@ export default function ConsultationForm({ patientId, patientName, patientData }
             />
 
             <div ref={formRef}>
-                <fieldset disabled={!isEditing} className="contents group">
+                {/* ═══ FICHE EXAMEN PRINT VIEW (paper form, hidden on screen) ═══ */}
+                {isPrintingExam && examPrintData && (
+                    <FicheExamenPrint
+                        data={examPrintData}
+                        schemaCanvas={schemaCanvasRef.current}
+                        schemaHasContent={schemaHasContent}
+                    />
+                )}
+
+                <fieldset disabled={!isEditing} className={`contents group ${isPrintingExam ? 'fiche-hide-regular' : ''}`}>
                     {/* En-tête professionnel partagé */}
-                    {!shouldShow("rapport") && (
+                    {!shouldShow("rapport") && !isPrintingExam && (
                         <PrintHeader
                             title={isPrintingExam ? "FICHE D'EXAMEN MÉDICAL" : "CERTIFICAT MÉDICAL INITIAL"}
                             unitName="UNITÉ DE CONSULTATION MÉDICO-LÉGALE"
@@ -960,7 +921,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                             type="file"
                                             accept="image/*"
                                             onChange={handleImageUpload}
-                                            className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                                            className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <div className="w-px h-8 bg-white/20 mx-2"></div>
@@ -971,7 +932,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                             type="color"
                                             value={brushColor}
                                             onChange={(e) => setBrushColor(e.target.value)}
-                                            className="h-8 w-12 rounded cursor-pointer"
+                                            className="h-8 w-12 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     {/* Taille du trait */}
@@ -983,7 +944,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                             max="10"
                                             value={brushSize}
                                             onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                                            className="w-32"
+                                            className="w-32 disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <div className="flex flex-wrap gap-3">
@@ -1044,8 +1005,8 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                         </div>
                     </div>
 
-                    {/* Signature Area */}
-                    {!shouldShow("rapport") && (
+                    {/* Signature Area — only for non-exam prints */}
+                    {!shouldShow("rapport") && !isPrintingExam && (
                         <div className="hidden print:block mt-4 mb-2" style={{ pageBreakBefore: 'avoid', pageBreakInside: 'avoid' }}>
                             <div className="flex justify-start">
                                 <div className="text-left">
@@ -1058,8 +1019,8 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                         </div>
                     )}
 
-                    {/* Pied de page impression */}
-                    {!shouldShow("rapport") && (
+                    {/* Pied de page impression — only for non-exam prints */}
+                    {!shouldShow("rapport") && !isPrintingExam && (
                         <div className="footer-print hidden print:block" >
                             <p>SERVICE DE MÉDECINE LÉGALE C.H.U. TLEMCEN | Bvd MOHAMMED V - 13000 TLEMCEN</p>
                             <p>Tel: 043 20-10-30 (poste 2223 / 2202) | Fax: 043 20-14-14</p>

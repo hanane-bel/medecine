@@ -90,3 +90,455 @@ body {
     display: none !important;
   }
 }
+
+/* 
+ * FIX HTML2CANVAS OKLAB PARSING CRASH
+ * html2canvas (used by html2pdf.js) doesn't support Tailwind v4's color-mix(in oklab...) 
+ * which is generated for classes with opacity like bg-white/5 or border-white/10.
+ * To bypass this, we force simple colors on all elements during PDF generation.
+ */
+.pdf-mode, 
+.pdf-mode *,
+.pdf-mode *::before,
+.pdf-mode *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  text-decoration-color: transparent !important;
+  outline-color: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: #000 !important;
+  color: #000 !important;
+  fill: #000 !important;
+  stroke: #000 !important;
+}
+
+.pdf-mode {
+  background-color: #fff !important;
+}
+
+.pdf-mode button,
+.pdf-mode nav,
+.pdf-mode header:not(.print\:block),
+.pdf-mode .no-print {
+  display: none !important;
+}
+
+.pdf-mode .titre-gris, .pdf-mode .titre-gris * {
+  background-color: #d1d5db !important;
+}
+
+.pdf-mode .bg-blue-600 {
+  background-color: #2563eb !important;
+  color: #fff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FICHE D'EXAMEN MÉDICAL — Paper Form Print Styles
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Hidden on screen, visible on print/pdf */
+.fiche-examen-print {
+  display: none;
+}
+
+@media print {
+  .fiche-examen-print {
+    display: block !important;
+  }
+  .fiche-examen-print * {
+    color: #000 !important;
+    font-family: "Times New Roman", "Serif", serif !important;
+  }
+}
+
+.pdf-mode .fiche-examen-print {
+  display: block !important;
+}
+.pdf-mode .fiche-examen-print * {
+  color: #000 !important;
+  font-family: "Times New Roman", "Serif", serif !important;
+}
+
+/* Page container */
+.fiche-page {
+  width: 100%;
+  background: #fff;
+  position: relative;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.fiche-page-1 {
+  padding-left: 32px; /* room for vertical NUMERO text */
+}
+
+@media print {
+  .fiche-page {
+    page-break-after: always;
+  }
+  .fiche-page:last-child {
+    page-break-after: auto;
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.fiche-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #000;
+}
+
+.fiche-header-logo {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.fiche-header-logo img {
+  width: 100%;
+  height: auto;
+  max-height: 55px;
+  object-fit: contain;
+}
+
+.fiche-header-text {
+  flex: 1;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.fiche-header-line1 {
+  font-size: 11pt;
+  font-weight: bold;
+  margin: 0;
+}
+
+.fiche-header-line2 {
+  font-size: 9pt;
+  font-weight: bold;
+  margin: 0;
+}
+
+.fiche-header-line3 {
+  font-size: 10pt;
+  font-weight: 900;
+  margin: 2px 0 0;
+  text-transform: uppercase;
+}
+
+/* ── Title Box ──────────────────────────────────────────────────── */
+.fiche-title-box {
+  text-align: center;
+  margin: 10px 0;
+  padding: 4px 0;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+}
+
+.fiche-title {
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* ── Vertical NUMERO ────────────────────────────────────────────── */
+.fiche-numero-vertical {
+  position: absolute;
+  left: 0;
+  top: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11pt;
+  font-weight: bold;
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  letter-spacing: 2px;
+  border-right: 1px solid #000;
+  padding: 8px 4px;
+  height: auto;
+}
+
+.fiche-numero-vertical span {
+  display: block;
+}
+
+/* ── Body fields ────────────────────────────────────────────────── */
+.fiche-body {
+  padding: 6px 0 0 8px;
+}
+
+.fiche-field-line {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 10px;
+  min-height: 22px;
+  border-bottom: 1px solid #888;
+  padding-bottom: 2px;
+}
+
+.fiche-label {
+  font-size: 10pt;
+  font-weight: bold;
+  white-space: nowrap;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.fiche-value {
+  flex: 1;
+  font-size: 10pt;
+  min-height: 16px;
+}
+
+/* ── Section Titles (Allégations, Antécédents) ──────────────────── */
+.fiche-section-title {
+  text-align: center;
+  margin: 14px 0 8px;
+  padding: 2px 0;
+  border-bottom: 2px solid #000;
+}
+
+.fiche-section-title span {
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+/* ── Checkboxes ─────────────────────────────────────────────────── */
+.fiche-check-box {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #000;
+  text-align: center;
+  line-height: 14px;
+  font-size: 10px;
+  margin-right: 3px;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.fiche-check-box.checked {
+  font-weight: bold;
+}
+
+.fiche-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10pt;
+  margin-right: 14px;
+}
+
+/* Nature des faits layout */
+.fiche-nature-faits {
+  margin-bottom: 10px;
+}
+
+.fiche-nature-faits .fiche-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.fiche-checkboxes-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 24px;
+  margin-bottom: 4px;
+}
+
+.fiche-separator {
+  font-weight: bold;
+  margin: 0 6px;
+}
+
+.fiche-cbv-row {
+  margin-top: 4px;
+}
+
+/* Objet */
+.fiche-objet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fiche-checkboxes-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Payment */
+.fiche-payment {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #000;
+}
+
+.fiche-payment-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10pt;
+  font-weight: bold;
+  border: 1px solid #000;
+  padding: 4px 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE 2: EXAMEN MÉDICAL
+   ═══════════════════════════════════════════════════════════════════ */
+
+.fiche-exam-section {
+  margin-bottom: 0;
+}
+
+.fiche-exam-title {
+  text-align: center;
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 0 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fiche-thick-line {
+  height: 3px;
+  background: #000;
+  margin: 0 0 4px;
+  border: none;
+}
+
+.fiche-exam-content {
+  padding: 4px 8px;
+  white-space: pre-wrap;
+  font-size: 10pt;
+  line-height: 1.6;
+}
+
+.fiche-exam-large {
+  min-height: 340px;
+}
+
+.fiche-exam-medium {
+  min-height: 140px;
+}
+
+.fiche-exam-small {
+  min-height: 100px;
+}
+
+.fiche-exam-content p {
+  margin: 0;
+}
+
+/* ITT line */
+.fiche-itt-line {
+  display: flex;
+  align-items: baseline;
+  margin: 8px 0 4px;
+  padding-bottom: 2px;
+}
+
+.fiche-itt-label {
+  font-size: 10pt;
+  font-weight: bold;
+  font-style: italic;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.fiche-itt-value {
+  flex: 1;
+  font-size: 10pt;
+  font-weight: bold;
+  border-bottom: 1px solid #888;
+  min-height: 16px;
+}
+
+/* Le Médecin */
+.fiche-medecin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 20px;
+  padding-right: 40px;
+}
+
+.fiche-medecin-label {
+  font-size: 10pt;
+  font-weight: bold;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fiche-medecin-name {
+  font-size: 10pt;
+  margin-top: 30px;
+}
+
+/* Schema page */
+.fiche-schema-container {
+  text-align: center;
+}
+
+.fiche-schema-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── PDF Mode overrides for fiche ───────────────────────────────── */
+.pdf-mode .fiche-thick-line {
+  background-color: #000 !important;
+}
+
+.pdf-mode .fiche-check-box {
+  background-color: #fff !important;
+  border-color: #000 !important;
+}
+
+.pdf-mode .fiche-payment-box {
+  background-color: #fff !important;
+  border-color: #000 !important;
+}
+
+.pdf-mode .fiche-header {
+  border-bottom-color: #000 !important;
+}
+
+.pdf-mode .fiche-title-box {
+  border-color: #000 !important;
+}
+
+.pdf-mode .fiche-section-title {
+  border-bottom-color: #000 !important;
+}
+
+.pdf-mode .fiche-field-line {
+  border-bottom-color: #888 !important;
+}
+
+.pdf-mode .fiche-header-logo img {
+  filter: none !important;
+}
+
+/* Hide regular form content when printing the exam fiche */
+@media print {
+  .fiche-hide-regular {
+    display: none !important;
+  }
+}
+
+.pdf-mode .fiche-hide-regular {
+  display: none !important;
+}

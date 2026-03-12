@@ -176,20 +176,36 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
         await new Promise(r => setTimeout(r, 100));
 
         formRef.current.classList.add("pdf-mode");
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-            margin: 10,
-            filename: `Fiche_Expertise_${patientName.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const }
-        };
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        await html2pdf().from(formRef.current).set(opt).save();
+            const canvas = await html2canvas(formRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
 
-        formRef.current.classList.remove("pdf-mode");
-        resetTextareas();
-        setShowAllForPrint(false);
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Fiche_Expertise_${patientName.replace(/\s+/g, '_')}.pdf`);
+        } catch (error: any) {
+            console.error("PDF Generation Error (Exam):", error);
+            alert("Erreur lors de la génération du PDF: " + (error?.message || error));
+        } finally {
+            formRef.current.classList.remove("pdf-mode");
+            resetTextareas();
+            setShowAllForPrint(false);
+        }
     };
 
     const handleDownloadReportPDF = async (selectedSections: string[]) => {
@@ -202,23 +218,39 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
         await new Promise(r => setTimeout(r, 100));
 
         formRef.current.classList.add("pdf-mode");
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-            margin: 10,
-            filename: `Rapport_Expertise_${patientName.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const }
-        };
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        await html2pdf().from(formRef.current).set(opt).save();
+            const canvas = await html2canvas(formRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
 
-        formRef.current.classList.remove("pdf-mode");
-        showAllFields();
-        resetTextareas();
-        setShowAllForPrint(false);
-        setIsPrintingReport(false);
-        setReportSections([]);
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Rapport_Expertise_${patientName.replace(/\s+/g, '_')}.pdf`);
+        } catch (error: any) {
+            console.error("PDF Generation Error (Report):", error);
+            alert("Erreur lors de la génération du PDF: " + (error?.message || error));
+        } finally {
+            formRef.current.classList.remove("pdf-mode");
+            showAllFields();
+            resetTextareas();
+            setShowAllForPrint(false);
+            setIsPrintingReport(false);
+            setReportSections([]);
+        }
     };
 
     // Hide empty fields before printing
@@ -264,6 +296,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
         const reader = new FileReader();
         reader.onload = (event) => {
             const img = new Image();
+            img.crossOrigin = "Anonymous";
             img.onload = () => {
                 const canvas = schemaCanvasRef.current;
                 if (!canvas) return;
@@ -286,6 +319,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
                 setHasUploadedImage(true);
+                setSchemaHasContent(true);
             };
             img.src = event.target?.result as string;
         };
@@ -785,12 +819,12 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                                         <div className="flex flex-wrap gap-4 mb-4 no-print items-center">
                                             <div>
                                                 <label className="block text-xs font-bold text-blue-500 mb-1">Importer une image</label>
-                                                <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700" />
+                                                <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" />
                                             </div>
                                             <div className="w-px h-8 bg-white/20 mx-2"></div>
                                             <div>
                                                 <label className="block text-xs font-bold text-blue-500 mb-1">Couleur</label>
-                                                <input type="color" value={brushColor} onChange={(e) => setBrushColor(e.target.value)} className="h-8 w-12 rounded cursor-pointer" />
+                                                <input type="color" value={brushColor} onChange={(e) => setBrushColor(e.target.value)} className="h-8 w-12 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-blue-500 mb-1">Épaisseur ({brushSize}px)</label>

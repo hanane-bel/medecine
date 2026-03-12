@@ -45,6 +45,8 @@ class CanEditPatientRecord(permissions.BasePermission):
             return True
             
         if user.role.lower() == 'medecin':
+            if obj.status in ['termine', 'demande_modification']:
+                return False
             return obj.medecin_traitant is None or obj.created_by == user or obj.medecin_traitant == user
             
         return False

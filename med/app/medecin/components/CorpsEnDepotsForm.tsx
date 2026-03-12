@@ -73,21 +73,37 @@ export default function CorpsEnDepotsForm({ patientId, patientName, patientData 
         await new Promise(r => setTimeout(r, 100));
 
         formRef.current.classList.add("pdf-mode");
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-            margin: 10,
-            filename: `Rapport_Examen_Corps_${patientName.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm' as const, format: 'a4', orientation: 'portrait' as const }
-        };
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-        await html2pdf().from(formRef.current).set(opt).save();
+            const canvas = await html2canvas(formRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
 
-        formRef.current.classList.remove("pdf-mode");
-        showAllFields();
-        resetTextareas();
-        setShowAllForPrint(false);
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Rapport_Examen_Corps_${patientName.replace(/\s+/g, '_')}.pdf`);
+        } catch (error: any) {
+            console.error("PDF Generation Error (Exam):", error);
+            alert("Erreur lors de la génération du PDF: " + (error?.message || error));
+        } finally {
+            formRef.current.classList.remove("pdf-mode");
+            showAllFields();
+            resetTextareas();
+            setShowAllForPrint(false);
+        }
     };
 
     // Hide empty fields before printing

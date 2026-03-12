@@ -5,7 +5,7 @@ import { CHEF_SERVICE_INFO } from "./constants";
 
 export { CHEF_SERVICE_INFO };
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "http://192.168.100.2:8000/api";
 
 export function setSessionCookie(role: string) {
     if (typeof document !== "undefined") {
