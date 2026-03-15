@@ -56,11 +56,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(userDash, request.url));
   }
   
-  if (path.startsWith('/medecin') && role !== 'medecin') {
+  if (path.startsWith('/medecin') && role !== 'medecin' && role !== 'chef_service') {
     return NextResponse.redirect(new URL(userDash, request.url));
   }
   
-  if (path.startsWith('/secretaire') && role !== 'secretaire') {
+  if (path.startsWith('/secretaire') && role !== 'secretaire' && role !== 'chef_service') {
     return NextResponse.redirect(new URL(userDash, request.url));
   }
 

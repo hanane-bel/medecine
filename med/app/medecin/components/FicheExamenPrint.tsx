@@ -412,7 +412,7 @@ export default function FicheExamenPrint({ data, schemaCanvas, schemaHasContent 
                                 <div className="fep-unit">Unité de Consultation Médico-Légale</div>
                                 <div className="fep-location">
                                     Tlemcen, le&nbsp;
-                                    <strong>
+                                    <strong suppressHydrationWarning>
                                         {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                                     </strong>
                                 </div>
@@ -481,44 +481,44 @@ export default function FicheExamenPrint({ data, schemaCanvas, schemaHasContent 
                         <div style={{ marginBottom: 9 }}>
                             <div className="fep-cb-label">Nature des faits :</div>
                             <div className="fep-cb-group">
-                                <span className="fep-cb-item">
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isCBI ? 'checked' : ''}`} />
                                     CBI
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isCBV ? 'checked' : ''}`} />
                                     CBV
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isADC ? 'checked' : ''}`} />
                                     ADC
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isAVP ? 'checked' : ''}`} />
                                     AVP
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isAutresNature ? 'checked' : ''}`} />
                                     Autres
-                                </span>
+                                </div>
                             </div>
                         </div>
 
                         <div style={{ marginBottom: 9 }}>
                             <div className="fep-cb-label">Objet :</div>
                             <div className="fep-cb-group">
-                                <span className="fep-cb-item">
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isContondant ? 'checked' : ''}`} />
                                     Contondant
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isTranchant ? 'checked' : ''}`} />
                                     Tranchant
-                                </span>
-                                <span className="fep-cb-item">
+                                </div>
+                                <div className="fep-cb-item">
                                     <div className={`fep-cb-box ${data.isAutresObjet ? 'checked' : ''}`} />
                                     Autres
-                                </span>
+                                </div>
                             </div>
                         </div>
 

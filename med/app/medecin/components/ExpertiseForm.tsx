@@ -6,6 +6,7 @@ import PersistentForm from "./PersistentForm";
 import PrintHeader from "./PrintHeader";
 import { getCurrentUser } from "../../lib/api";
 import FormLockBanner from "./FormLockBanner";
+import { useFormDataStore } from "../../store/formDataStore";
 
 import { Patient } from "../../store/patientStore";
 
@@ -64,6 +65,58 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
     const [brushSize, setBrushSize] = useState(2);
     const [hasUploadedImage, setHasUploadedImage] = useState(false);
     const [schemaHasContent, setSchemaHasContent] = useState(false);
+    const [schemaDataUrl, setSchemaDataUrl] = useState<string>("");
+
+    const setField = useFormDataStore((s) => s.setField);
+    const getFormData = useFormDataStore((s) => s.getFormData);
+
+    const saveSchema = () => {
+        const canvas = schemaCanvasRef.current;
+        if (canvas) {
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+            setField(patientId, "expertise_examen", "schema_data", dataUrl);
+            setField(patientId, "expertise_rapport", "schema_data", dataUrl);
+            setSchemaDataUrl(dataUrl);
+        }
+    };
+
+    useEffect(() => {
+        let schemaData = "";
+        const savedData1 = getFormData(patientId, "expertise_examen");
+        const savedData2 = getFormData(patientId, "expertise_rapport");
+        
+        if (savedData1 && savedData1["schema_data"]) {
+            schemaData = savedData1["schema_data"];
+        } else if (savedData2 && savedData2["schema_data"]) {
+            schemaData = savedData2["schema_data"];
+        } else if (patientData?.rapport_medical) {
+            try {
+                const parsed = JSON.parse(patientData.rapport_medical);
+                if (parsed["schema_data"]) schemaData = parsed["schema_data"];
+            } catch { }
+        }
+
+        if (schemaData) {
+            setSchemaDataUrl(schemaData);
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                const canvas = schemaCanvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                setHasUploadedImage(true);
+                setSchemaHasContent(true);
+            };
+            img.src = schemaData;
+        }
+    }, [patientId, patientData, getFormData, currentView]);
 
     // Sections imprimables pour le rapport médical
     const PRINTABLE_SECTIONS_RAPPORT = [
@@ -320,6 +373,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                 ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
                 setHasUploadedImage(true);
                 setSchemaHasContent(true);
+                saveSchema();
             };
             img.src = event.target?.result as string;
         };
@@ -335,6 +389,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         setHasUploadedImage(false);
         setSchemaHasContent(false);
+        saveSchema();
     };
 
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -383,6 +438,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
 
     const stopDrawing = () => {
         setIsDrawing(false);
+        saveSchema();
     };
 
     const inputClass = "w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 text-base leading-relaxed print:bg-white print:text-black print:border-gray-300 print:py-1 print:px-2 print:w-[calc(100%-11rem)] print:inline-block print:align-middle";
@@ -810,7 +866,7 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                             </div>
 
                             {/* SCHÉMA LÉSIONNEL (EXAMEN) */}
-                            <div style={{ display: shouldShowExamen("schema") && (schemaHasContent || !showAllForPrint) ? 'block' : 'none' }}>
+                            <div className="print:break-before-page" style={{ display: shouldShowExamen("schema") && (schemaHasContent || !showAllForPrint) ? 'block' : 'none' }}>
                                 <div className="space-y-6 print-section">
                                     <h3 className="text-lg font-bold text-white flex items-center gap-2 print:text-black">
                                         Schéma Lésionnel
@@ -835,14 +891,19 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                                         </div>
                                         <p className="text-xs text-gray-400 mb-4 no-print italic">S'il n'y a pas d'image, le dessin se fera sur un fond blanc.</p>
                                         <div className="flex justify-center bg-gray-100 rounded-lg p-4 overflow-hidden print:p-0 min-h-[300px]">
-                                            <canvas
-                                                ref={schemaCanvasRef}
-                                                width={800} height={500}
-                                                onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing}
-                                                onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
-                                                className="border border-gray-300 cursor-crosshair max-w-full bg-white shadow-sm"
-                                                style={{ touchAction: "none" }}
-                                            />
+                                            <div className={`w-full justify-center ${showAllForPrint ? 'hidden' : 'flex'} print:hidden`}>
+                                                <canvas
+                                                    ref={schemaCanvasRef}
+                                                    width={800} height={500}
+                                                    onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing}
+                                                    onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
+                                                    className="border border-gray-300 cursor-crosshair max-w-full bg-white shadow-sm"
+                                                    style={{ touchAction: "none" }}
+                                                />
+                                            </div>
+                                            <div className={`w-full justify-center ${showAllForPrint ? 'flex' : 'hidden'} print:flex`}>
+                                                {schemaDataUrl && <img src={schemaDataUrl} alt="Schéma Lésionnel" className="max-w-full object-contain" />}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1147,20 +1208,25 @@ export default function ExpertiseForm({ patientId, patientName, patientData }: E
                         </div>
 
                         {/* SCHÉMA LÉSIONNEL (RAPPORT) */}
-                        <div style={{ display: shouldShowRapport("schema_r") && (schemaHasContent || !showAllForPrint) ? 'block' : 'none' }}>
+                        <div className="print:break-before-page" style={{ display: shouldShowRapport("schema_r") && (schemaHasContent || !showAllForPrint) ? 'block' : 'none' }}>
                             <div className="print-section mt-4 schema-section">
                                 <div className="titre-gris bg-gray-400 text-black px-2 py-0 mb-2 mt-3 print:bg-gray-400">
                                     <h3 className="font-bold underline underline-offset-2 uppercase text-[11pt] m-0">Schéma Lésionnel</h3>
                                 </div>
                                 <div className="flex justify-center bg-gray-50 rounded-lg p-2 overflow-hidden print:p-0 min-h-[300px]">
-                                    <canvas
-                                        ref={schemaCanvasRef}
-                                        width={800} height={500}
-                                        onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing}
-                                        onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
-                                        className="border border-gray-300 cursor-crosshair max-w-full bg-white"
-                                        style={{ touchAction: "none" }}
-                                    />
+                                    <div className={`w-full justify-center ${showAllForPrint ? 'hidden' : 'flex'} print:hidden`}>
+                                        <canvas
+                                            ref={schemaCanvasRef}
+                                            width={800} height={500}
+                                            onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing}
+                                            onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing}
+                                            className="border border-gray-300 cursor-crosshair max-w-full bg-white"
+                                            style={{ touchAction: "none" }}
+                                        />
+                                    </div>
+                                    <div className={`w-full justify-center ${showAllForPrint ? 'flex' : 'hidden'} print:flex`}>
+                                        {schemaDataUrl && <img src={schemaDataUrl} alt="Schéma Lésionnel" className="max-w-full object-contain" />}
+                                    </div>
                                 </div>
                                 <div className="flex flex-wrap gap-4 mt-2 mb-4 no-print items-center bg-white/5 p-3 rounded-lg border border-white/10">
                                     <div>

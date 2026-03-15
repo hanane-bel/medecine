@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     fetchPatients, fetchActivity, fetchDailyStats, updatePatient, deletePatient as apiDeletePatient,
     fetchPendingUsers, approveUser, rejectUser,
@@ -196,24 +197,24 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                        <button
-                            onClick={() => router.push("/medecin")}
-                            className="flex items-center space-x-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl transition-all duration-300"
+                        <Link
+                            href="/medecin"
+                            className="flex items-center space-x-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl transition-all duration-300 shrink-0"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
-                            <span>Espace Médecin</span>
-                        </button>
-                        <button
-                            onClick={() => router.push("/secretaire")}
-                            className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-xl transition-all duration-300"
+                            <span className="whitespace-nowrap hidden sm:inline">Espace Médecin</span>
+                        </Link>
+                        <Link
+                            href="/secretaire"
+                            className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-xl transition-all duration-300 shrink-0"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
-                            <span>Espace Secrétaire</span>
-                        </button>
+                            <span className="whitespace-nowrap hidden sm:inline">Espace Secrétaire</span>
+                        </Link>
 
                         <div className="h-8 w-px bg-white/10 hidden md:block mx-2"></div>
 
