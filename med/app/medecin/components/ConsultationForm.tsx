@@ -698,11 +698,11 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                     <div><label className={labelClass}>Nom et Prénom</label><input type="text" placeholder="" defaultValue={patientName} className={inputClass} /></div>
                                     <div><label className={labelClass}>Date et lieu de naissance</label><input type="text" placeholder="" defaultValue={`${patientData?.date_naissance || ""} ${patientData?.lieu_naissance ? `à ${patientData.lieu_naissance}` : ""}`.trim()} className={inputClass} /></div>
                                     <div><label className={labelClass}>État civil</label><select defaultValue={patientData?.situation || ""} className={inputClass}>
-                                        <option value="">Sélectionner...</option>
-                                        <option value="Célibataire">Célibataire</option>
-                                        <option value="Marié(e)">Marié(e)</option>
-                                        <option value="Divorcé(e)">Divorcé(e)</option>
-                                        <option value="Veuf/Veuve">Veuf/Veuve</option>
+                                        <option value="" className="bg-gray-800 text-white">Sélectionner...</option>
+                                        <option value="Célibataire" className="bg-gray-800 text-white">Célibataire</option>
+                                        <option value="Marié(e)" className="bg-gray-800 text-white">Marié(e)</option>
+                                        <option value="Divorcé(e)" className="bg-gray-800 text-white">Divorcé(e)</option>
+                                        <option value="Veuf/Veuve" className="bg-gray-800 text-white">Veuf/Veuve</option>
                                     </select></div>
                                     <div><label className={labelClass}>Profession</label><input type="text" placeholder="" defaultValue={patientData?.profession || ""} className={inputClass} /></div>
                                     <div className="md:col-span-2">
@@ -797,7 +797,18 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                     </div>
 
                                     <div>
-                                        <label className={labelClass}>Auteur</label><input type="text" name="auteur_agression" placeholder="" className={inputClass} /></div>
+                                        <label className={labelClass}>Auteur</label>
+                                        <select name="auteur_agression" className={inputClass} defaultValue="">
+                                            <option value="" className="bg-gray-800 text-white">Sélectionner...</option>
+                                            <option value="Voisin" className="bg-gray-800 text-white">Voisin</option>
+                                            <option value="Cousin" className="bg-gray-800 text-white">Cousin</option>
+                                            <option value="Conjoint" className="bg-gray-800 text-white">Conjoint</option>
+                                            <option value="Parent" className="bg-gray-800 text-white">Parent</option>
+                                            <option value="Frère/Sœur" className="bg-gray-800 text-white">Frère/Sœur</option>
+                                            <option value="Inconnu" className="bg-gray-800 text-white">Inconnu</option>
+                                            <option value="Autre" className="bg-gray-800 text-white">Autre</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Section Antécédents */}
@@ -900,10 +911,11 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                         <h3 className="font-bold underline underline-offset-2 uppercase text-[11pt]">Préambule</h3>
                                     </div>
                                     <div className="space-y-0 pl-2">
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Réquisition de :</span><input type="text" defaultValue="" /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Date de la réquisition :</span><input type="date" className="w-auto" defaultValue="" /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Examen de :</span><input type="text" defaultValue={patientName} /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Date et lieu de naissance :</span><input type="text" placeholder="" defaultValue={`${patientData?.date_naissance || ""} ${patientData?.lieu_naissance ? 'à ' + patientData.lieu_naissance : ""}`.trim()} /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Réquisition de :</span><input type="text" className={inputClass} defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Date de la réquisition :</span><input type="date" className={`${inputClass} w-auto`} defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Examen de :</span><input type="text" className={inputClass} defaultValue={patientName} /></div>
+                                        <div className="flex items-center gap-2"><span className="w-[180px] shrink-0">– Date de naissance :</span><input type="date" className={`${inputClass} w-auto`} defaultValue={patientData?.date_naissance || ""} /></div>
+                                        <div className="flex items-center gap-2"><span className="w-[180px] shrink-0">– Lieu de naissance :</span><input type="text" className={inputClass} defaultValue={patientData?.lieu_naissance || ""} /></div>
                                     </div>
                                 </section>
 
@@ -912,7 +924,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                         <h3 className="font-bold underline underline-offset-2 uppercase text-[11pt]">Mission</h3>
                                     </div>
                                     <div className="pl-2">
-                                        <textarea rows={1} defaultValue="" className="overflow-hidden resize-none translate-y-[2px]" />
+                                        <textarea rows={1} defaultValue="" className={`${inputClass} overflow-hidden resize-none translate-y-[2px]`} />
                                     </div>
                                 </section>
 
@@ -921,18 +933,18 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                         <h3 className="font-bold underline underline-offset-2 uppercase text-[11pt]">Examen médical</h3>
                                     </div>
                                     <div className="space-y-0 pl-2">
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Date de l'examen :</span><input type="date" className="w-auto" defaultValue="" /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Doléances :</span><input type="text" defaultValue="" /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Antécédents :</span><input type="text" defaultValue="" /></div>
-                                        <div className="flex"><span className="w-[180px] shrink-0">– Etat général :</span><input type="text" defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Date de l'examen :</span><input type="date" className={`${inputClass} w-auto`} defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Doléances :</span><input type="text" className={inputClass} defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Antécédents :</span><input type="text" className={inputClass} defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[180px] shrink-0">– Etat général :</span><input type="text" className={inputClass} defaultValue="" /></div>
                                         <div className="mt-0">
                                             <span>– Examen clinique :</span>
                                             <div className="pl-8 space-y-0">
-                                                <div className="flex items-center"><span className="mr-2">▪</span><span className="w-[120px] shrink-0">Inspection :</span><input type="text" defaultValue="" /></div>
-                                                <div className="flex items-center"><span className="mr-2">▪</span><span className="w-[120px] shrink-0">Palpation :</span><input type="text" defaultValue="" /></div>
+                                                <div className="flex items-center"><span className="mr-2">▪</span><span className="w-[120px] shrink-0">Inspection :</span><input type="text" className={inputClass} defaultValue="" /></div>
+                                                <div className="flex items-center"><span className="mr-2">▪</span><span className="w-[120px] shrink-0">Palpation :</span><input type="text" className={inputClass} defaultValue="" /></div>
                                             </div>
                                         </div>
-                                        <div className="flex"><span className="w-[220px] shrink-0">– Reste de l'examen médical :</span><input type="text" defaultValue="" /></div>
+                                        <div className="flex"><span className="w-[220px] shrink-0">– Reste de l'examen médical :</span><input type="text" className={inputClass} defaultValue="" /></div>
                                     </div>
                                 </section>
 
@@ -943,7 +955,7 @@ export default function ConsultationForm({ patientId, patientName, patientData }
                                     <div className="pl-2">
                                         <div className="flex flex-wrap items-baseline gap-1">
                                             <span>L'examen médical de</span>
-                                            <input type="text" className="w-auto flex-1 min-w-[200px]" defaultValue="" />
+                                            <input type="text" className={`${inputClass} w-auto flex-1 min-w-[200px]`} defaultValue="" />
                                         </div>
                                     </div>
                                     <div className="mt-6 text-right pr-12">

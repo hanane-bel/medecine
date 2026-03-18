@@ -542,3 +542,40 @@ body {
 .pdf-mode .fiche-hide-regular {
   display: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CERTIFICAT MÉDICAL — Input Field Styles
+   ═══════════════════════════════════════════════════════════════════════ */
+.cert-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  font-size: 11pt;
+  padding: 2px 4px;
+  outline: none;
+  min-width: 0;
+}
+
+.cert-input:focus {
+  border-bottom-color: #60a5fa;
+}
+
+.cert-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 40px;
+}
+
+@media print {
+  .cert-input {
+    color: black !important;
+    border-bottom-color: #888 !important;
+  }
+}
+
+.pdf-mode .cert-input {
+  color: black !important;
+  border-bottom-color: #888 !important;
+}
